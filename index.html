@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>张国垚 | 前端设计探索者</title>
+    
+    <!-- 引入现代无衬线字体与代码字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <!-- 引入图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* =========================================
+           1. CSS 变量与全局重置 (Design Tokens)
+           ========================================= */
+        :root {
+            --bg-color: #050505;
+            --text-main: #f0f0f0;
+            --text-muted: #888899;
+            --accent-cyan: #00f0ff;   /* 科技青 */
+            --accent-purple: #b026ff; /* 极客紫 */
+            --glass-bg: rgba(255, 255, 255, 0.02);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            --font-code: 'Fira Code', monospace;
+            --font-sans: 'Inter', -apple-system, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html {
+            scroll-behavior: smooth;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-cyan) transparent;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+            cursor: none; 
+        }
+
+        a { text-decoration: none; color: inherit; cursor: none; }
+        button { cursor: none; }
+
+        /* =========================================
+           2. 自定义光标 (Custom Cursor)
+           ========================================= */
+        .cursor-dot {
+            width: 6px; height: 6px;
+            background: var(--accent-cyan);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+        .cursor-ring {
+            width: 35px; height: 35px;
+            border: 1.5px solid rgba(0, 240, 255, 0.4);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9998;
+            transform: translate(-50%, -50%);
+            transition: all 0.15s ease-out;
+        }
+        .cursor-ring.hover {
+            width: 55px; height: 55px;
+            border-color: var(--accent-purple);
+            background: rgba(176, 38, 255, 0.1);
+        }
+
+        /* =========================================
+           3. 背景与布局 (Background & Layout)
+           ========================================= */
+        #matrix-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            opacity: 0.15;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+        section { min-height: 100vh; display: flex; align-items: center; padding: 100px 0; }
+
+        /* =========================================
+           4. 导航栏 (Nav)
+           ========================================= */
+        nav {
+            position: fixed;
+            top: 20px; left: 50%;
+            transform: translateX(-50%);
+            width: 90%; max-width: 900px;
+            padding: 1rem 2rem;
+            background: rgba(5, 5, 5, 0.6);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .logo {
+            font-family: var(--font-code);
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--accent-cyan);
+        }
+        .logo span { color: var(--text-muted); }
+
+        .nav-links { display: flex; gap: 2rem; list-style: none; }
+        .nav-links a {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: var(--transition);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .nav-links a:hover { color: var(--accent-cyan); }
+
+        /* =========================================
+           5. 首屏英雄区 (Hero Section)
+           ========================================= */
+        .hero-content { width: 100%; }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0.4rem 1rem;
+            background: rgba(0, 240, 255, 0.05);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-family: var(--font-code);
+            color: var(--accent-cyan);
+            margin-bottom: 2rem;
+        }
+        .pulse {
+            width: 8px; height: 8px;
+            background: var(--accent-cyan);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 240, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0); }
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 7vw, 5rem);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.03em;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-desc {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            max-width: 650px;
+            line-height: 1.8;
+            margin-bottom: 3rem;
+        }
+        .hero-desc strong { color: var(--text-main); font-weight: 600; }
+
+        .btn-group { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+        .btn {
+            padding: 0.9rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: var(--font-sans);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: #000;
+            box-shadow: 0 10px 30px -10px rgba(0, 240, 255, 0.3);
+        }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 15px 40px -10px rgba(0, 240, 255, 0.5); }
+        
+        .btn-outline {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--glass-border);
+        }
+        .btn-outline:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); transform: translateY(-3px); }
+
+        /* =========================================
+           6. 项目展示区 (Projects Grid)
+           ========================================= */
+        .section-header { margin-bottom: 4rem; width: 100%; }
+        .section-header h2 { font-size: 2rem; margin-bottom: 0.5rem; font-family: var(--font-code); }
+        .section-header h2::before { content: "< "; color: var(--accent-cyan); }
+        .section-header h2::after { content: " />"; color: var(--accent-cyan); }
+
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+        }
+
+        .project-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .project-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(0, 240, 255, 0.06), transparent 40%);
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        .project-card:hover::before { opacity: 1; }
+        .project-card:hover { transform: translateY(-5px); border-color: rgba(0, 240, 255, 0.3); }
+
+        .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .card-icon { font-size: 1.5rem; color: var(--accent-cyan); }
+        .card-link { color: var(--text-muted); transition: var(--transition); }
+        .card-link:hover { color: var(--accent-cyan); }
+
+        .project-card h3 { font-size: 1.2rem; margin-bottom: 0.8rem; }
+        .project-card p { color: var(--text-muted); line-height: 1.6; font-size: 0.9rem; flex-grow: 1; margin-bottom: 1.5rem; }
+        
+        .tags { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .tag {
+            padding: 0.2rem 0.6rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: var(--font-code);
+            color: var(--accent-purple);
+        }
+
+        /* =========================================
+           7. 关于我与技能 (About & Skills)
+           ========================================= */
+        .about-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .terminal-window {
+            background: #111;
+            border-radius: 12px;
+            border: 1px solid #333;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .terminal-header {
+            background: #222;
+            padding: 10px 15px;
+            display: flex;
+            gap: 6px;
+        }
+        .terminal-btn { width: 12px; height: 12px; border-radius: 50%; }
+        .t-red { background: #ff5f56; }
+        .t-yellow { background: #ffbd2e; }
+        .t-green { background: #27c93f; }
+        .terminal-body {
+            padding: 1.5rem;
+            font-family: var(--font-code);
+            font-size: 0.85rem;
+            line-height: 1.8;
+            color: #ccc;
+        }
+        .terminal-body .comment { color: #555; }
+        .terminal-body .keyword { color: var(--accent-purple); }
+        .terminal-body .string { color: #27c93f; }
+        .terminal-body .prop { color: var(--accent-cyan); }
+
+        .skills-container { display: flex; flex-direction: column; gap: 1.5rem; }
+        .skill-item label { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600; }
+        .progress-bar { width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 10px;
+            width: 0; 
+            transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* =========================================
+           8. 联系区 (Contact)
+           ========================================= */
+        .contact-wrapper {
+            width: 100%;
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+        }
+        .contact-wrapper h2 { font-size: 2.5rem; margin-bottom: 1rem; }
+        .contact-wrapper p { color: var(--text-muted); margin-bottom: 2rem; max-width: 500px; margin-left: auto; margin-right: auto; }
+        
+        .social-grid {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .social-card {
+            padding: 1rem 2rem;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: var(--transition);
+        }
+        .social-card:hover { border-color: var(--accent-cyan); transform: translateY(-3px); }
+        .social-card i { font-size: 1.2rem; color: var(--accent-cyan); }
+
+        /* =========================================
+           9. 页脚 (Footer)
+           ========================================= */
+        footer {
+            padding: 3rem 0;
+            text-align: center;
+            border-top: 1px solid var(--glass-border);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-family: var(--font-code);
+        }
+
+        /* =========================================
+           10. 滚动显示动画 (Scroll Reveal)
+           ========================================= */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+
+        /* =========================================
+           11. 响应式设计 (Responsive)
+           ========================================= */
+        @media (max-width: 768px) {
+            body { cursor: auto; }
+            .cursor-dot, .cursor-ring { display: none; }
+            a, button { cursor: pointer; }
+            
+            nav { width: 95%; padding: 0.8rem 1.5rem; }
+            .nav-links { display: none; }
+            
+            section { padding: 80px 0; min-height: auto; }
+            .about-grid { grid-template-columns: 1fr; gap: 2rem; }
+            .projects-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 自定义光标 -->
+    <div class="cursor-dot"></div>
+    <div class="cursor-ring"></div>
+
+    <!-- 极客代码雨背景 -->
+    <canvas id="matrix-canvas"></canvas>
+
+    <!-- 导航栏 -->
+    <nav>
+        <div class="logo">zhangguoyao<span>.dev</span></div>
+        <ul class="nav-links">
+            <li><a href="#home">首页</a></li>
+            <li><a href="#projects">作品</a></li>
+            <li><a href="#about">关于</a></li>
+            <li><a href="#contact">联系</a></li>
+        </ul>
+    </nav>
+
+    <!-- 首屏 Hero -->
+    <section id="home">
+        <div class="container hero-content">
+            <div class="status-badge reveal">
+                <div class="pulse"></div>
+                High School Student & Frontend Dev
+            </div>
+            <h1 class="reveal">
+                你好，我是<br><span class="gradient-text">张国垚</span>
+            </h1>
+            <p class="hero-desc reveal">
+                一名来自中国的<strong>高中生</strong>，也是狂热的<strong>前端设计爱好者</strong>。<br>
+                我相信代码不仅是逻辑的堆砌，更是表达美学的画笔。在应对学业的同时，我用 HTML/CSS/JS 构建属于我的数字宇宙。
+            </p>
+            <div class="btn-group reveal">
+                <a href="#projects" class="btn btn-primary"><i class="fas fa-terminal"></i> 探索我的代码</a>
+                <a href="#contact" class="btn btn-outline"><i class="fas fa-envelope"></i> 交个朋友</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 项目展示 -->
+    <section id="projects">
+        <div class="container" style="display: flex; flex-direction: column;">
+            <div class="section-header reveal">
+                <h2>Projects</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">课余时间的一些折腾与实践</p>
+            </div>
+            <div class="projects-grid">
+                <!-- 卡片 1 -->
+                <div class="project-card reveal">
+                    <div class="card-top">
+                        <i class="fas fa-folder-open card-icon"></i>
+                        <a href="#" class="card-link"><i class="fab fa-github"></i></a>
+                    </div>
+                    <h3>个人主页 V1.0</h3>
+                    <p>就是你现在看到的这个网站！从零开始手写，使用了玻璃拟态设计和原生 Canvas 粒子动画，没有使用任何框架。</p>
+                    <div class="tags">
+                        <span class="tag">HTML5</span>
+                        <span class="tag">CSS3</span>
+                        <span class="tag">Vanilla JS</span>
+                    </div>
+                </div>
+                <!-- 卡片 2 -->
+                <div class="project-card reveal">
+                    <div class="card-top">
+                        <i class="fas fa-calculator card-icon"></i>
+                        <a href="#" class="card-link"><i class="fab fa-github"></i></a>
+                    </div>
+                    <h3>极简番茄钟</h3>
+                    <p>为了在高中晚自习更高效地专注而开发的时间管理工具。支持白噪音播放和深色模式切换。</p>
+                    <div class="tags">
+                        <span class="tag">Vue.js</span>
+                        <span class="tag">LocalStorage</span>
+                        <span class="tag">UI Design</span>
+                    </div>
+                </div>
+                <!-- 卡片 3 -->
+                <div class="project-card reveal">
+                    <div class="card-top">
+                        <i class="fas fa-palette card-icon"></i>
+                        <a href="#" class="card-link"><i class="fab fa-github"></i></a>
+                    </div>
+                    <h3>CSS 艺术画廊</h3>
+                    <p>一个纯 CSS 绘制的图形集合。通过挑战不使用图片来绘制复杂图形，深入理解了 CSS 盒模型与渐变原理。</p>
+                    <div class="tags">
+                        <span class="tag">CSS Art</span>
+                        <span class="tag">Animation</span>
+                        <span class="tag">Sass</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 关于我与技能 -->
+    <section id="about">
+        <div class="container about-grid">
+            <div class="reveal">
+                <div class="terminal-window">
+                    <div class="terminal-header">
+                        <div class="terminal-btn t-red"></div>
+                        <div class="terminal-btn t-yellow"></div>
+                        <div class="terminal-btn t-green"></div>
+                    </div>
+                    <div class="terminal-body">
+                        <span class="comment">// guoyao_profile.js</span><br><br>
+                        <span class="keyword">const</span> <span class="prop">student</span> = {<br>
+                        &nbsp;&nbsp;<span class="prop">name</span>: <span class="string">"张国垚"</span>,<br>
+                        &nbsp;&nbsp;<span class="prop">identity</span>: <span class="string">"中国高中生"</span>,<br>
+                        &nbsp;&nbsp;<span class="prop">passion</span>: <span class="string">"前端设计与交互"</span>,<br>
+                        &nbsp;&nbsp;<span class="prop">motto</span>: <span class="string">"保持好奇，持续构建"</span>,<br>
+                        &nbsp;&nbsp;<span class="prop">learning</span>: [<span class="string">"React"</span>, <span class="string">"Three.js"</span>, <span class="string">"TypeScript"</span>],<br>
+                        &nbsp;&nbsp;<span class="prop">hobbies</span>: [<span class="string">"写代码"</span>, <span class="string">"看设计展"</span>, <span class="string">"听音乐"</span>]<br>
+                        };<br><br>
+                        <span class="keyword">export default</span> <span class="prop">student</span>;<br>
+                        <span class="cursor-blink" style="border-right: 2px solid var(--accent-cyan); animation: blink 1s infinite;">&nbsp;</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="skills-container reveal">
+                <h2 style="font-size: 1.5rem; margin-bottom: 1rem; font-family: var(--font-code);">Skill_Set</h2>
+                <div class="skill-item">
+                    <label><span>HTML / CSS / 布局</span><span>95%</span></label>
+                    <div class="progress-bar"><div class="progress-fill" data-width="95"></div></div>
+                </div>
+                <div class="skill-item">
+                    <label><span>JavaScript (ES6+)</span><span>80%</span></label>
+                    <div class="progress-bar"><div class="progress-fill" data-width="80"></div></div>
+                </div>
+                <div class="skill-item">
+                    <label><span>UI/UX 设计审美</span><span>85%</span></label>
+                    <div class="progress-bar"><div class="progress-fill" data-width="85"></div></div>
+                </div>
+                <div class="skill-item">
+                    <label><span>Vue / React 基础</span><span>60%</span></label>
+                    <div class="progress-bar"><div class="progress-fill" data-width="60"></div></div>
+                </div>
+                <div class="skill-item">
+                    <label><span>Git / GitHub</span><span>75%</span></label>
+                    <div class="progress-bar"><div class="progress-fill" data-width="75"></div></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 联系我 -->
+    <section id="contact">
+        <div class="container">
+            <div class="contact-wrapper reveal">
+                <h2 class="gradient-text">Let's Connect</h2>
+                <p>无论是交流前端技术、探讨设计美学，还是单纯想认识一下，都欢迎随时联系我！</p>
+                <div class="social-grid">
+                    <a href="https://github.com/zgy741852963" target="_blank" class="social-card">
+                        <i class="fab fa-github"></i>
+                        <span>GitHub</span>
+                    </a>
+                    <a href="#" class="social-card">
+                        <i class="fab fa-bilibili"></i>
+                        <span>Bilibili</span>
+                    </a>
+                    <a href="mailto:your_email@example.com" class="social-card">
+                        <i class="fas fa-envelope"></i>
+                        <span>Email</span>
+                    </a>
+                    <a href="#" class="social-card">
+                        <i class="fab fa-qq"></i>
+                        <span>QQ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 张国垚 (Zhang Guoyao). Crafted with ❤️ & 💻</p>
+            <p style="margin-top: 5px; font-size: 0.75rem; color: #444;">Designed for the future.</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript 交互逻辑 -->
+    <script>
+        // 1. 自定义光标
+        const dot = document.querySelector('.cursor-dot');
+        const ring = document.querySelector('.cursor-ring');
+        
+        window.addEventListener('mousemove', (e) => {
+            dot.style.left = `${e.clientX}px`;
+            dot.style.top = `${e.clientY}px`;
+            ring.style.left = `${e.clientX}px`;
+            ring.style.top = `${e.clientY}px`;
+        });
+
+        const hoverElements = document.querySelectorAll('a, button, .project-card, .social-card');
+        hoverElements.forEach(el => {
+            el.addEventListener('mouseenter', () => ring.classList.add('hover'));
+            el.addEventListener('mouseleave', () => ring.classList.remove('hover'));
+        });
+
+        // 2. 项目卡片鼠标追光
+        document.querySelectorAll('.project-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+            });
+        });
+
+        // 3. 滚动显示动画
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    if (entry.target.querySelector('.progress-fill')) {
+                        entry.target.querySelectorAll('.progress-fill').forEach(bar => {
+                            bar.style.width = bar.getAttribute('data-width') + '%';
+                        });
+                    }
+                }
+            });
+        }, { threshold: 0.15 });
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        // 4. 极客代码雨背景 (Matrix Rain)
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const chars = "张国垚FrontendDesignHTMLCSSJS01<>{}[];=+".split("");
+        const fontSize = 14;
+        let columns = Math.floor(canvas.width / fontSize);
+        let drops = Array(columns).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#00f0ff';
+            ctx.font = `${fontSize}px 'Fira Code', monospace`;
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(drawMatrix, 50);
+
+        // 窗口大小改变时重新计算列数
+        window.addEventListener('resize', () => {
+            columns = Math.floor(canvas.width / fontSize);
+            drops = Array(columns).fill(1);
+        });
+
+        // 添加闪烁光标动画
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = `@keyframes blink { 50% { border-color: transparent; } }`;
+        document.head.appendChild(styleSheet);
+    </script>
+</body>
+</html>
