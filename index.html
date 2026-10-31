@@ -350,6 +350,124 @@
         .social-card:hover { border-color: var(--accent-cyan); transform: translateY(-3px); }
         .social-card i { font-size: 1.2rem; color: var(--accent-cyan); }
 
+        /* 分隔标签 */
+        .contact-divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            max-width: 640px;
+            margin: 3rem auto 0;
+            font-family: var(--font-code);
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .contact-divider::before,
+        .contact-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--glass-border);
+        }
+
+        /* 二维码联系方式 */
+        .qr-grid {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+        }
+        .qr-card {
+            width: 220px;
+            padding: 1rem 1rem 1.2rem;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            transition: var(--transition);
+        }
+        .qr-card:hover {
+            border-color: rgba(0, 240, 255, 0.35);
+            transform: translateY(-4px);
+        }
+        .qr-card .qr-frame {
+            width: 100%;
+            aspect-ratio: 3 / 4;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .qr-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        .qr-card .qr-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        .qr-card .qr-title i { color: var(--accent-cyan); font-size: 1.1rem; }
+        .qr-card .qr-id {
+            font-family: var(--font-code);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 0.3px;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        /* 二维码放大预览 */
+        .qr-lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: rgba(5, 5, 5, 0.88);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+        .qr-lightbox.open { opacity: 1; visibility: visible; }
+        .qr-lightbox img {
+            max-width: min(420px, 88vw);
+            max-height: 78vh;
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.65);
+            transform: scale(0.94);
+            transition: var(--transition);
+        }
+        .qr-lightbox.open img { transform: scale(1); }
+        .qr-lightbox .lightbox-close {
+            position: absolute;
+            top: 26px;
+            right: 34px;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            font-size: 2rem;
+            line-height: 1;
+            transition: var(--transition);
+        }
+        .qr-lightbox .lightbox-close:hover { color: var(--accent-cyan); }
+
         /* =========================================
            9. 页脚 (Footer)
            ========================================= */
@@ -386,6 +504,13 @@
             section { padding: 80px 0; min-height: auto; }
             .about-grid { grid-template-columns: 1fr; gap: 2rem; }
             .projects-grid { grid-template-columns: 1fr; }
+
+            .contact-wrapper { padding: 2.5rem 1.2rem; }
+            .qr-grid { gap: 1rem; }
+            .qr-card { width: 150px; padding: 0.6rem 0.6rem 0.9rem; }
+            .qr-card .qr-title { font-size: 0.85rem; }
+            .qr-card .qr-id { font-size: 0.65rem; }
+            .qr-lightbox .lightbox-close { top: 16px; right: 20px; }
         }
     </style>
 </head>
@@ -543,7 +668,7 @@
                 <h2 class="gradient-text">Let's Connect</h2>
                 <p>无论是交流前端技术、探讨设计美学，还是单纯想认识一下，都欢迎随时联系我！</p>
                 <div class="social-grid">
-                    <a href="https://github.com/zgy741852963" target="_blank" class="social-card">
+                    <a href="https://github.com/zgy741852963" target="_blank" rel="noopener" class="social-card">
                         <i class="fab fa-github"></i>
                         <span>GitHub</span>
                     </a>
@@ -555,14 +680,43 @@
                         <i class="fas fa-envelope"></i>
                         <span>Email</span>
                     </a>
-                    <a href="#" class="social-card">
+                    <a href="wechat-qr.jpg" class="social-card" data-qr="wechat-qr.jpg" data-qr-alt="微信二维码 - 一叶知秋">
+                        <i class="fab fa-weixin"></i>
+                        <span>微信</span>
+                    </a>
+                    <a href="qq-qr.jpg" class="social-card" data-qr="qq-qr.jpg" data-qr-alt="QQ 二维码 - 3028140978">
                         <i class="fab fa-qq"></i>
                         <span>QQ</span>
                     </a>
                 </div>
+
+                <div class="contact-divider">扫码添加好友</div>
+
+                <div class="qr-grid">
+                    <div class="qr-card">
+                        <div class="qr-frame" data-qr="wechat-qr.jpg" data-qr-alt="微信二维码 - 一叶知秋">
+                            <img src="wechat-qr.jpg" alt="微信二维码 - 一叶知秋" loading="lazy">
+                        </div>
+                        <div class="qr-title"><i class="fab fa-weixin"></i><span>一叶知秋</span></div>
+                        <div class="qr-id">微信号：百慕大</div>
+                    </div>
+                    <div class="qr-card">
+                        <div class="qr-frame" data-qr="qq-qr.jpg" data-qr-alt="QQ 二维码 - 3028140978">
+                            <img src="qq-qr.jpg" alt="QQ 二维码 - 3028140978" loading="lazy">
+                        </div>
+                        <div class="qr-title"><i class="fab fa-qq"></i><span>A</span></div>
+                        <div class="qr-id">QQ：3028140978</div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
+
+    <!-- 二维码放大预览 -->
+    <div class="qr-lightbox" id="qr-lightbox" aria-hidden="true">
+        <button class="lightbox-close" type="button" aria-label="关闭">&times;</button>
+        <img src="" alt="">
+    </div>
 
     <!-- 页脚 -->
     <footer>
@@ -656,6 +810,37 @@
         window.addEventListener('resize', () => {
             columns = Math.floor(canvas.width / fontSize);
             drops = Array(columns).fill(1);
+        });
+
+        // 5. 二维码放大预览
+        const lightbox = document.getElementById('qr-lightbox');
+        const lightboxImg = lightbox.querySelector('img');
+
+        function openLightbox(src, alt) {
+            lightboxImg.src = src;
+            lightboxImg.alt = alt || '联系人二维码';
+            lightbox.classList.add('open');
+            lightbox.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeLightbox() {
+            lightbox.classList.remove('open');
+            lightbox.setAttribute('aria-hidden', 'true');
+        }
+
+        document.querySelectorAll('[data-qr]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                openLightbox(el.getAttribute('data-qr'), el.getAttribute('data-qr-alt'));
+            });
+        });
+
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox) closeLightbox();
+        });
+        lightbox.querySelector('.lightbox-close').addEventListener('click', closeLightbox);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeLightbox();
         });
 
         // 添加闪烁光标动画
